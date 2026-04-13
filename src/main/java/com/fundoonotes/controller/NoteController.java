@@ -10,12 +10,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+import java.io.InputStream;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 @RestController
 @RequestMapping("/api/notes")
 @RequiredArgsConstructor
+@Slf4j
 public class NoteController {
 
     private final NoteService noteService;
@@ -69,5 +75,67 @@ public class NoteController {
             @PathVariable Long id) {
         Long userId = getUserIdFromToken(authHeader);
         return ResponseEntity.ok(noteService.trashNote(userId, id));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<NoteResponseDto> getNoteById(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.getNoteById(userId, id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<NoteResponseDto> updateNote(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id,
+            @Valid @RequestBody NoteRequestDto request) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.updateNote(userId, id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNote(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        noteService.deleteNote(userId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> importNotesFromExcel(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam("file") MultipartFile file) {
+        Long userId = getUserIdFromToken(authHeader);
+        log.info("Starting Excel import for user: {}", userId);
+        
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(is)) {
+            
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+            int rowCount = 0;
+            
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+                if (row == null) continue;
+                
+                String title = row.getCell(0).getStringCellValue();
+                String description = row.getCell(1).getStringCellValue();
+                
+                NoteRequestDto dto = new NoteRequestDto();
+                dto.setTitle(title);
+                dto.setDescription(description);
+                
+                noteService.createNote(userId, dto);
+                rowCount++;
+            }
+            
+            log.info("Excel file processed. {} notes created for user {}", rowCount, userId);
+            return ResponseEntity.ok("Successfully imported " + rowCount + " notes.");
+        } catch (Exception e) {
+            log.error("Failed to parse Excel file", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to read file: " + e.getMessage());
+        }
     }
 }

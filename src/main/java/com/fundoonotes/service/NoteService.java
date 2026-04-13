@@ -11,4 +11,7 @@ public interface NoteService {
     NoteResponseDto pinNote(Long userId, Long noteId);
     NoteResponseDto archiveNote(Long userId, Long noteId);
     NoteResponseDto trashNote(Long userId, Long noteId);
+    NoteResponseDto getNoteById(Long userId, Long noteId);
+    NoteResponseDto updateNote(Long userId, Long noteId, NoteRequestDto request);
+    void deleteNote(Long userId, Long noteId);
 }

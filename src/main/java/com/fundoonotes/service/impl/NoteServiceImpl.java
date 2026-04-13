@@ -9,8 +9,12 @@ import com.fundoonotes.exception.UserNotFoundException;
 import com.fundoonotes.repository.NoteRepository;
 import com.fundoonotes.repository.UserRepository;
 import com.fundoonotes.service.NoteService;
+import com.fundoonotes.messaging.EventPublisherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +27,7 @@ public class NoteServiceImpl implements NoteService {
 
     private final NoteRepository noteRepository;
     private final UserRepository userRepository;
+    private final EventPublisherService eventPublisherService;
 
     @Override
     public NoteResponseDto createNote(Long userId, NoteRequestDto request) {
@@ -55,6 +60,11 @@ public class NoteServiceImpl implements NoteService {
         Note note = fetchNoteByIdAndUserId(noteId, userId);
         note.setPinned(!note.isPinned());
         Note savedNote = noteRepository.save(note);
+        try {
+            eventPublisherService.publishAuditEvent("Note " + noteId + " pinned toggled by User " + userId);
+        } catch (Exception e) {
+            log.warn("Could not publish audit event: {}", e.getMessage());
+        }
         return mapToDto(savedNote);
     }
 
@@ -64,6 +74,11 @@ public class NoteServiceImpl implements NoteService {
         Note note = fetchNoteByIdAndUserId(noteId, userId);
         note.setArchived(!note.isArchived());
         Note savedNote = noteRepository.save(note);
+        try {
+            eventPublisherService.publishAuditEvent("Note " + noteId + " archive toggled by User " + userId);
+        } catch (Exception e) {
+            log.warn("Could not publish audit event: {}", e.getMessage());
+        }
         return mapToDto(savedNote);
     }
 
@@ -73,12 +88,44 @@ public class NoteServiceImpl implements NoteService {
         Note note = fetchNoteByIdAndUserId(noteId, userId);
         note.setTrashed(!note.isTrashed());
         Note savedNote = noteRepository.save(note);
+        try {
+            eventPublisherService.publishAuditEvent("Note " + noteId + " trash toggled by User " + userId);
+        } catch (Exception e) {
+            log.warn("Could not publish audit event: {}", e.getMessage());
+        }
         return mapToDto(savedNote);
     }
 
     private Note fetchNoteByIdAndUserId(Long noteId, Long userId) {
         return noteRepository.findByIdAndUserId(noteId, userId)
                 .orElseThrow(() -> new NoteNotFoundException("Note not found or user unauthorized to access it"));
+    }
+
+    @Override
+    @Cacheable(value = "notes", key = "#noteId")
+    public NoteResponseDto getNoteById(Long userId, Long noteId) {
+        log.info("Fetching note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        return mapToDto(note);
+    }
+
+    @Override
+    @CachePut(value = "notes", key = "#noteId")
+    public NoteResponseDto updateNote(Long userId, Long noteId, NoteRequestDto request) {
+        log.info("Updating note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        note.setTitle(request.getTitle());
+        note.setDescription(request.getDescription());
+        Note savedNote = noteRepository.save(note);
+        return mapToDto(savedNote);
+    }
+
+    @Override
+    @CacheEvict(value = "notes", key = "#noteId")
+    public void deleteNote(Long userId, Long noteId) {
+        log.info("Deleting note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        noteRepository.delete(note);
     }
 
     private NoteResponseDto mapToDto(Note note) {

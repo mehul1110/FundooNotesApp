@@ -10,6 +10,7 @@ import com.fundoonotes.exception.UserAlreadyExistsException;
 import com.fundoonotes.exception.UserNotFoundException;
 import com.fundoonotes.repository.UserRepository;
 import com.fundoonotes.service.UserService;
+import com.fundoonotes.messaging.EventPublisherService;
 import com.fundoonotes.util.TokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenUtil tokenUtil;
+    private final EventPublisherService eventPublisherService;
 
     @Override
     public UserResponseDto register(UserRegisterRequestDto request) {
@@ -40,6 +42,12 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User savedUser = userRepository.save(user);
+
+        try {
+            eventPublisherService.publishUserRegistration(savedUser.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to publish registration event to RabbitMQ: {}", e.getMessage());
+        }
 
         UserResponseDto response = new UserResponseDto();
         response.setId(savedUser.getId());
