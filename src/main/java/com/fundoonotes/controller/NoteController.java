@@ -10,8 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+import java.io.InputStream;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 @RestController
 @RequestMapping("/api/notes")
@@ -48,7 +53,29 @@ public class NoteController {
         return ResponseEntity.ok(noteService.getAllNotes(userId));
     }
 
+    @PatchMapping("/{id}/pin")
+    public ResponseEntity<NoteResponseDto> pinNote(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.pinNote(userId, id));
+    }
 
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<NoteResponseDto> archiveNote(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.archiveNote(userId, id));
+    }
+
+    @PatchMapping("/{id}/trash")
+    public ResponseEntity<NoteResponseDto> trashNote(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.trashNote(userId, id));
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<NoteResponseDto> getNoteById(
@@ -57,6 +84,5 @@ public class NoteController {
         Long userId = getUserIdFromToken(authHeader);
         return ResponseEntity.ok(noteService.getNoteById(userId, id));
     }
-
 
 }
