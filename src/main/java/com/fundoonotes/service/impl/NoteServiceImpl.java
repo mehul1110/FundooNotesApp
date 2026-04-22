@@ -9,9 +9,9 @@ import com.fundoonotes.exception.UserNotFoundException;
 import com.fundoonotes.repository.NoteRepository;
 import com.fundoonotes.repository.UserRepository;
 import com.fundoonotes.service.NoteService;
+import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,6 +49,33 @@ public class NoteServiceImpl implements NoteService {
         return notes.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    @Override
+    public NoteResponseDto pinNote(Long userId, Long noteId) {
+        log.info("Pinning/Unpinning note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        note.setPinned(!note.isPinned());
+        Note savedNote = noteRepository.save(note);
+        return mapToDto(savedNote);
+    }
+
+    @Override
+    public NoteResponseDto archiveNote(Long userId, Long noteId) {
+        log.info("Archiving/Unarchiving note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        note.setArchived(!note.isArchived());
+        Note savedNote = noteRepository.save(note);
+        return mapToDto(savedNote);
+    }
+
+    @Override
+    public NoteResponseDto trashNote(Long userId, Long noteId) {
+        log.info("Trashing/Untrashing note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        note.setTrashed(!note.isTrashed());
+        Note savedNote = noteRepository.save(note);
+        return mapToDto(savedNote);
+    }
+
     private Note fetchNoteByIdAndUserId(Long noteId, Long userId) {
         return noteRepository.findByIdAndUserId(noteId, userId)
                 .orElseThrow(() -> new NoteNotFoundException("Note not found or user unauthorized to access it"));
@@ -60,6 +87,8 @@ public class NoteServiceImpl implements NoteService {
         Note note = fetchNoteByIdAndUserId(noteId, userId);
         return mapToDto(note);
     }
+
+
 
     private NoteResponseDto mapToDto(Note note) {
         NoteResponseDto dto = new NoteResponseDto();
