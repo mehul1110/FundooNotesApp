@@ -10,11 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * REST Controller for managing Note creation.
- */
 @RestController
 @RequestMapping("/api/notes")
 @RequiredArgsConstructor
@@ -42,5 +40,23 @@ public class NoteController {
         Long userId = getUserIdFromToken(authHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(noteService.createNote(userId, request));
     }
+
+    @GetMapping("/")
+    public ResponseEntity<List<NoteResponseDto>> getAllNotes(
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.getAllNotes(userId));
+    }
+
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<NoteResponseDto> getNoteById(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromToken(authHeader);
+        return ResponseEntity.ok(noteService.getNoteById(userId, id));
+    }
+
 
 }

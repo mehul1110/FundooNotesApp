@@ -13,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,7 +42,24 @@ public class NoteServiceImpl implements NoteService {
         return mapToDto(savedNote);
     }
 
+    @Override
+    public List<NoteResponseDto> getAllNotes(Long userId) {
+        log.info("Fetching all notes for user id: {}", userId);
+        List<Note> notes = noteRepository.findByUserId(userId);
+        return notes.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
 
+    private Note fetchNoteByIdAndUserId(Long noteId, Long userId) {
+        return noteRepository.findByIdAndUserId(noteId, userId)
+                .orElseThrow(() -> new NoteNotFoundException("Note not found or user unauthorized to access it"));
+    }
+
+    @Override
+    public NoteResponseDto getNoteById(Long userId, Long noteId) {
+        log.info("Fetching note id: {} for user id: {}", noteId, userId);
+        Note note = fetchNoteByIdAndUserId(noteId, userId);
+        return mapToDto(note);
+    }
 
     private NoteResponseDto mapToDto(Note note) {
         NoteResponseDto dto = new NoteResponseDto();

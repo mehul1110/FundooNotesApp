@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface NoteService {
     NoteResponseDto createNote(Long userId, NoteRequestDto request);
+    List<NoteResponseDto> getAllNotes(Long userId);
+    NoteResponseDto getNoteById(Long userId, Long noteId);
 }
