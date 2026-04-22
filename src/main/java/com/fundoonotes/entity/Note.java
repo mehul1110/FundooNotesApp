@@ -7,29 +7,32 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
+/**
+ * Entity representing a Note in the FundooNotes application.
+ * Belongs to a User and can be pinned, archived, or trashed.
+ */
 @Entity
-@Table(name="users")
+@Table(name="notes")
 @Getter
 @Setter
-public class User {
+public class Note {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String firstName;
+    private String title;
 
-    private String lastName;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    private boolean pinned = false;
 
-    @Column(nullable = false)
-    private String password;
+    private boolean archived = false;
+
+    private boolean trashed = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -37,6 +40,7 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Note> notes = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="user_id", nullable = false)
+    private User user;
 }

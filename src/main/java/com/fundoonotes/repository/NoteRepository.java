@@ -1,0 +1,20 @@
+package com.fundoonotes.repository;
+
+import com.fundoonotes.entity.Note;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository interface for Note entity.
+ * Provides custom queries for fetching user-specific, archived, and trashed notes.
+ */
+@Repository
+public interface NoteRepository extends JpaRepository<Note, Long> {
+    List<Note> findByUserId(Long userId);
+    Optional<Note> findByIdAndUserId(Long noteId, Long userId);
+    List<Note> findByUserIdAndArchivedFalseAndTrashedFalse(Long userId);
+    List<Note> findByTrashedTrue();
+}
