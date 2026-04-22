@@ -7,4 +7,5 @@ import com.fundoonotes.dto.response.UserResponseDto;
 
 public interface UserService {
     UserResponseDto register(UserRegisterRequestDto request);
+    LoginResponseDto login(LoginRequestDto request);
 }
